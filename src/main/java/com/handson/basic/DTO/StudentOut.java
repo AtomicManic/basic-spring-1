@@ -1,13 +1,16 @@
+// --- Update 1: DTO class ---
 package com.handson.basic.DTO;
 
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.handson.basic.model.StudentGrade;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.SqlResultSetMapping;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @SqlResultSetMapping(name = "StudentOut")
@@ -29,6 +32,16 @@ public class StudentOut {
     private Double graduationscore;
     private String phone;
     private String profilepicture;
+    private Double avgscore; // changed type + kept consistent casing
+
+
+    public Double getAvgscore() {
+        return avgscore;
+    }
+
+    public void setAvgscore(Double avgscore) {
+        this.avgscore = avgscore;
+    }
 
     public Long getId() {
         return id;
@@ -51,7 +64,6 @@ public class StudentOut {
     public void setFullname(String fullname) {
         this.fullname = fullname;
     }
-
 
     public LocalDate getBirthdate() {
         return birthdate;

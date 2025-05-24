@@ -50,3 +50,5 @@ public class Pagination {
         return "Pagination{page=" + this.page + ", ofPage=" + this.ofPage + ", count=" + this.count + "}";
     }
 }
+
+//

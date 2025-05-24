@@ -6,3 +6,5 @@ public class Strings {
         return str != null ? "%" + str.toLowerCase() + "%" : null;
     }
 }
+
+//

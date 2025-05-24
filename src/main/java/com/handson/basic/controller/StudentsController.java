@@ -2,12 +2,10 @@ package com.handson.basic.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.handson.basic.DTO.StudentDetailsOut;
 import com.handson.basic.DTO.StudentIn;
 import com.handson.basic.DTO.StudentOut;
-import com.handson.basic.model.PaginationAndList;
-import com.handson.basic.model.SortDirection;
-import com.handson.basic.model.Student;
-import com.handson.basic.model.StudentSortField;
+import com.handson.basic.model.*;
 import com.handson.basic.service.StudentService;
 import com.handson.basic.util.FPS;
 import jakarta.persistence.EntityManager;
@@ -19,6 +17,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,21 +50,24 @@ public class StudentsController {
             @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate toBirthDate,
             @RequestParam(required = false) Integer fromSatScore,
             @RequestParam(required = false) Integer toSatScore,
+            @RequestParam(required = false) Integer fromAvgScore,
             @RequestParam(defaultValue = "1") Integer page,
             @RequestParam(defaultValue = "50") @Min(1) Integer count,
             @RequestParam(defaultValue = "id") StudentSortField sort,
             @RequestParam(defaultValue = "asc") SortDirection sortDirection)
+
             throws JsonProcessingException {
 
         var res = FPS.<StudentOut>aFPS().select(List.of(
-                        aFPSField().field("id").alias("id").build(),
-                        aFPSField().field("created_at").alias("createdat").build(),
-                        aFPSField().field("fullname").alias("fullname").build(),
-                        aFPSField().field("birth_date").alias("birthdate").build(),
-                        aFPSField().field("sat_score").alias("satscore").build(),
-                        aFPSField().field("graduation_score").alias("graduationscore").build(),
-                        aFPSField().field("phone").alias("phone").build(),
-                        aFPSField().field("profile_picture").alias("profilepicture").build()
+                        aFPSField().field("s.id").alias("id").build(),
+                        aFPSField().field("s.created_at").alias("createdat").build(),
+                        aFPSField().field("s.fullname").alias("fullname").build(),
+                        aFPSField().field("s.birth_date").alias("birthdate").build(),
+                        aFPSField().field("s.sat_score").alias("satscore").build(),
+                        aFPSField().field("s.graduation_score").alias("graduationscore").build(),
+                        aFPSField().field("s.phone").alias("phone").build(),
+                        aFPSField().field("s.profile_picture").alias("profilepicture").build(),
+                        aFPSField().field("(select avg(sg.course_score) from student_grade sg where sg.student_id = s.id)").alias("avgscore").build()
                 ))
                 .from(List.of(" student s"))
                 .conditions(List.of(
@@ -76,7 +80,9 @@ public class StudentsController {
                         aFPSCondition().condition("( sat_score >= :fromSatScore )")
                                 .parameterName("fromSatScore").value(fromSatScore).build(),
                         aFPSCondition().condition("( sat_score <= :toSatScore )")
-                                .parameterName("toSatScore").value(toSatScore).build()
+                                .parameterName("toSatScore").value(toSatScore).build(),
+                        aFPSCondition().condition("( (select avg(sg.course_score) from student_grade sg where sg.student_id = s.id ) >= :fromAvgScore )")
+                                .parameterName("fromAvgScore").value(fromAvgScore).build()
                 ))
                 .sortField(sort.fieldName)
                 .sortDirection(sortDirection)
@@ -91,7 +97,31 @@ public class StudentsController {
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public ResponseEntity<?> getOneStudent(@PathVariable Long id) {
-        return new ResponseEntity<>(studentService.findById(id), HttpStatus.OK);
+        Optional<Student> optional = studentService.findById(id);
+        if (optional.isEmpty())
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Student not found");
+
+        Student student = optional.get();
+
+        Double avg = student.getStudentGrades().stream()
+                .map(StudentGrade::getCourseScore)
+                .mapToInt(Integer::intValue)
+                .average()
+                .orElse(0);
+
+        StudentDetailsOut out = new StudentDetailsOut();
+        out.setId(student.getId());
+        out.setCreatedat(LocalDateTime.ofInstant(student.getCreatedAt(), ZoneId.systemDefault()));
+        out.setFullname(student.getFullname());
+        out.setBirthdate(student.getBirthDate());
+        out.setSatscore(student.getSatScore());
+        out.setGraduationscore(student.getGraduationScore());
+        out.setPhone(student.getPhone());
+        out.setProfilepicture(student.getProfilePicture());
+        out.setAvgscore(avg);
+        out.setStudentGrades(new ArrayList<>(student.getStudentGrades()));
+
+        return new ResponseEntity<>(out, HttpStatus.OK);
     }
 
     @RequestMapping(value = "", method = RequestMethod.POST)
@@ -125,7 +155,6 @@ public class StudentsController {
 
     @RequestMapping(value = "/highSat", method = RequestMethod.GET)
     public ResponseEntity<?> getHighSatStudents(@RequestParam Integer sat) {
-        return new ResponseEntity<>(studentService.getStudentWithSatHigherThan(sat),
-                HttpStatus.OK);
+        return new ResponseEntity<>(studentService.getStudentWithSatHigherThan(sat), HttpStatus.OK);
     }
 }
