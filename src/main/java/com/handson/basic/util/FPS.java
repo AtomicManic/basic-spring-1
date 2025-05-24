@@ -42,11 +42,23 @@ public class FPS<T> {
                 });
 
         List<T> rows = qrySelect.getResultList();
-        BigInteger total = (BigInteger) qryCount.getSingleResult();
-        int totalCount = total.intValue();
-        int totalPages = (int) Math.ceil((double) totalCount / count);
 
-        return PaginationAndList.of(Pagination.of(page, totalPages, totalCount), rows);
+        // FIX: handle possible Long, BigInteger, Integer return types
+        Object raw = qryCount.getSingleResult();
+        long totalCount;
+
+        if (raw instanceof BigInteger bigInt) {
+            totalCount = bigInt.longValue();
+        } else if (raw instanceof Long longVal) {
+            totalCount = longVal;
+        } else if (raw instanceof Integer intVal) {
+            totalCount = intVal;
+        } else {
+            throw new IllegalStateException("Unexpected result type for count: " + raw.getClass());
+        }
+
+        int totalPages = (int) Math.ceil((double) totalCount / count);
+        return PaginationAndList.of(Pagination.of(page, totalPages, (int) totalCount), rows);
     }
 
     private String getSelectSql() {
@@ -87,7 +99,7 @@ public class FPS<T> {
         return sb.toString();
     }
 
-    public static <T> FPSBuilder<T> aFPS() { // <---- THIS is the method you're calling!
+    public static <T> FPSBuilder<T> aFPS() {
         return new FPSBuilder<>();
     }
 
