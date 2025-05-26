@@ -6,15 +6,19 @@ import com.handson.basic.DTO.StudentDetailsOut;
 import com.handson.basic.DTO.StudentIn;
 import com.handson.basic.DTO.StudentOut;
 import com.handson.basic.model.*;
+import com.handson.basic.service.AWSService;
+import com.handson.basic.service.SmsService;
 import com.handson.basic.service.StudentService;
 import com.handson.basic.util.FPS;
 import jakarta.persistence.EntityManager;
 import jakarta.validation.constraints.Min;
+import org.apache.commons.collections4.IteratorUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -27,6 +31,7 @@ import static com.handson.basic.util.FPS.aFPS;
 import static com.handson.basic.util.FPSCondition.FPSConditionBuilder.aFPSCondition;
 import static com.handson.basic.util.FPSField.FPSFieldBuilder.aFPSField;
 import static com.handson.basic.util.Strings.likeLowerOrNull;
+import static org.springframework.util.StringUtils.isEmpty;
 
 @RestController
 @RequestMapping("/api/students")
@@ -40,6 +45,12 @@ public class StudentsController {
 
     @Autowired
     ObjectMapper om;
+
+    @Autowired
+    SmsService smsService;
+
+    @Autowired
+    AWSService awsService;
 
     @RequestMapping(value = "", method = RequestMethod.GET)
     public ResponseEntity<PaginationAndList> search(
@@ -93,6 +104,35 @@ public class StudentsController {
                 .exec(em, om);
 
         return ResponseEntity.ok(res);
+    }
+
+    @RequestMapping(value = "/{id}/image", method = RequestMethod.PUT, consumes = "multipart/form-data")
+    public ResponseEntity<?> uploadStudentImage(
+            @PathVariable Long id,
+            @RequestParam("image") MultipartFile image
+    ) {
+        Optional<Student> dbStudent = studentService.findById(id);
+        if (dbStudent.isEmpty()) throw new RuntimeException("Student with id: " + id + " not found");
+
+        String bucketPath = "apps/advaa/student-" + id + ".png";
+        awsService.putInBucket(image, bucketPath);
+        dbStudent.get().setProfilePicture(bucketPath);
+        Student updatedStudent = studentService.save(dbStudent.get());
+
+        return new ResponseEntity<>(StudentOut.of(updatedStudent, awsService), HttpStatus.OK);
+    }
+
+    @RequestMapping(value = "/sms/all", method = RequestMethod.POST)
+    public ResponseEntity<?> smsAll(@RequestParam String text) {
+        new Thread(() -> {
+            studentService.all()
+                    .forEach(student -> {String phone = student.getPhone();
+                        if (phone != null && !phone.trim().isEmpty()) {
+                            smsService.send(text, phone);
+                        }
+                    });
+            }).start();
+        return new ResponseEntity<>("SENDING", HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
