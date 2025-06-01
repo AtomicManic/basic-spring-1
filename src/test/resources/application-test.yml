@@ -1,0 +1,14 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop     # rebuild schema for every test run
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+  jwt:
+    secret: j3RR5FcAumQCyg8sE440bOYYW/OYG6Os6I5509cZLOfNNPQH/GJc6C4DuTjdAL8fEhcNipDkvOWM
