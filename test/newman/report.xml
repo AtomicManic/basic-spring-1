@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="STUDENT_TEST" tests="4" time="1.121">
+  <testsuite name="register Copy" id="4f00f6fb-533d-4586-b454-13d819916825" timestamp="2025-06-03T21:42:40.492Z" tests="0" failures="0" errors="0" time="0.495"/>
+  <testsuite name="login Copy" id="953670e3-0b11-4844-b29c-f7a9f931b41d" timestamp="2025-06-03T21:42:40.492Z" tests="1" failures="0" errors="0" time="0.361">
+    <testcase name="Status code is 200" time="0.361" classname="StudentTest"/>
+  </testsuite>
+  <testsuite name="insert Student Copy" id="0e3be7b0-816d-4311-97dd-0ee5acfabfe8" timestamp="2025-06-03T21:42:40.492Z" tests="0" failures="0" errors="0" time="0.153"/>
+  <testsuite name="search Copy" id="2e0dfbe8-2838-423b-b5d1-ca1cedcc487d" timestamp="2025-06-03T21:42:40.492Z" tests="1" failures="0" errors="0" time="0.112">
+    <testcase name="Status code is 200" time="0.112" classname="StudentTest"/>
+  </testsuite>
+</testsuites>
