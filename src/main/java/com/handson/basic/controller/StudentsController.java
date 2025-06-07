@@ -27,6 +27,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import static com.handson.basic.util.FPS.aFPS;
 import static com.handson.basic.util.FPSCondition.FPSConditionBuilder.aFPSCondition;
@@ -124,16 +125,15 @@ public class StudentsController {
     }
 
     @RequestMapping(value = "/sms/all", method = RequestMethod.POST)
-    public ResponseEntity<?> smsAll(@RequestParam String text) {
-        new Thread(() -> {
-            studentService.all()
-                    .forEach(student -> {String phone = student.getPhone();
-                        if (phone != null && !phone.trim().isEmpty()) {
-                            smsService.send(text, phone);
-                        }
-                    });
-            }).start();
-        return new ResponseEntity<>("SENDING", HttpStatus.OK);
+    public ResponseEntity<?> smsAll(@RequestParam String text)
+    {
+        List<String> phones =
+                IteratorUtils.toList(studentService.all().iterator())
+                        .parallelStream()
+                        .map(student -> student.getPhone())
+                        .filter(phone -> !isEmpty(phone))
+                        .collect(Collectors.toList());
+        return new ResponseEntity<>(smsService.send(new MessageAndPhones(text, phones)), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
